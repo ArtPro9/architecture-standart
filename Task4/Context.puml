@@ -1,0 +1,34 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Диаграмма контекстов для интернет-банка с учётом интеграции ставок для колл-центра
+
+Person(client, "Клиент", "Пользователь старшей возрастной группы")
+Person(callCenterManager, "Менеджер call-центра", "Специалист по работе с клиентами")
+Person(backOfficeManager, "Менеджер бэк-офиса", "Специалист по внутренним процессам банка")
+
+System(abs, "Автоматизированная банковская система", "Система для управления внутренними процессами банка")
+System(internetBank, "Интернет-банк", "Система для управления депозитами клиентов через веб-интерфейс")
+System(callCenterSystem, "Система call-центра", "Система для обработки заявок менеджерами колл-центра")
+System(partnerCallCenterSystem, "Партнерская система call-центра", "Система для обработки заявок менеджерами партнерского колл-центра")
+System(website, "Сайт", "Портал для взаимодействия с клиентами")
+
+System_Ext(telecomOperator, "Телеком оператор", "Система для доставки SMS-сообщений")
+System_Ext(smsGateway, "СМС шлюз", "Система для отправки SMS-сообщений")
+
+Rel(client, internetBank, "Открывает депозит", "HTTP")
+Rel(client, website, "Открывает депозит", "HTTP")
+Rel(client, callCenterSystem, "Запрашивает консультацию", "Phone")
+
+Rel(backOfficeManager, abs, "Подтверждает условия депозита", "HTTP")
+Rel(abs, partnerCallCenterSystem, "Передает ставки", "SFTP")
+Rel(callCenterSystem, abs, "Получает ставки", "API")
+Rel(abs, internetBank, "Отправляет согласованные ставки", "API")
+
+Rel(website, callCenterSystem, "Отправляет заявки", "API")
+Rel(internetBank, smsGateway, "Отправляет SMS", "API")
+Rel(smsGateway, telecomOperator, "Отправляет SMS", "API")
+
+Rel(callCenterManager, partnerCallCenterSystem, "Работает с заявками", "HTTP")
+Rel(callCenterManager, callCenterSystem, "Работает с заявками", "HTTP")
+@enduml

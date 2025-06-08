@@ -1,0 +1,57 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Диаграмма контейнеров с интеграцией ставок в колл-центр и передачей файлов партнеру
+
+Person(client, "Клиент", "Пользователь банка")
+Person(callCenterManager, "Менеджер call-центра", "Специалист по работе с клиентами")
+Person(backOfficeManager, "Менеджер бэк-офиса", "Специалист по внутренним процессам банка")
+
+System_Boundary(internetBank, "Интернет-банк") {
+    Container(webInterfaceInternetBank, "Веб-интерфейс Интернет-банка", "React.js", "Веб-интерфейс для клиентов банка")
+    Container(depositServiceInternetBank, "Сервис депозитов Интернет-банка", "Java, Spring Boot", "Обработка заявок на депозиты")
+    ContainerDb(dbInternetBank, "База данных Интернет-банка", "MS SQL", "Хранение данных клиентов и заявок")
+    ContainerQueue(queueInternetBank, "Очередь сообщений Интернет-банка", "Kafka", "Асинхронная передача заявок")
+}
+
+System_Boundary(abs, "Автоматизированная банковская система (АБС)") {
+    Container(webInterfaceAbs, "Веб-интерфейс АБС", "Delphi", "Десктопное приложение для сотрудников банка")
+    ContainerDb(dbAbs, "База данных АБС", "Oracle", "Хранение внутренних банковских данных")
+    Container(rateService, "Сервис согласования ставок", "Java, Spring Boot", "Управление и согласование ставок по депозитам")
+    Container(rateTransferService, "Сервис передачи ставок", "Java, Spring Boot", "Отправка ставок по депозитам")
+}
+
+System(callCenterSystem, "Система колл-центра", "Обработка и управление заявками клиентов")
+System(website, "Публичный сайт", "PHP + React.js", "Портал для клиентов банка")
+
+System_Ext(smsGateway, "СМС-шлюз", "Отправка SMS-сообщений клиентам")
+System_Ext(telecomOperator, "Телеком-оператор", "Доставка SMS-сообщений")
+System_Ext(partnerCallCenter, "Партнерский call-центр", "Получает ставки по SFTP")
+
+Rel(client, webInterfaceInternetBank, "Открывает депозит через интернет-банк", "HTTPS")
+Rel(webInterfaceInternetBank, depositServiceInternetBank, "Создаёт заявку на депозит", "HTTPS")
+Rel(depositServiceInternetBank, dbInternetBank, "Сохраняет заявку", "SQL")
+Rel(depositServiceInternetBank, queueInternetBank, "Отправляет заявку в очередь", "Kafka API")
+
+Rel(client, website, "Открывает депозит через сайт", "HTTPS")
+Rel(website, callCenterSystem, "Перенаправляет заявку в колл-центр", "HTTPS")
+
+Rel(queueInternetBank, callCenterSystem, "Получает заявку из очереди", "Kafka API")
+Rel(callCenterManager, callCenterSystem, "Обрабатывает заявку", "HTTPS")
+Rel(callCenterSystem, queueInternetBank, "Отправляет подтверждённую заявку обратно", "Kafka API")
+Rel(callCenterSystem, partnerCallCenter, "Делегирует запрос", "API")
+Rel(queueInternetBank, depositServiceInternetBank, "Получает подтверждённую заявку", "Kafka API")
+
+Rel(depositServiceInternetBank, rateService, "Запрашивает согласование ставки", "HTTPS")
+Rel(rateService, dbAbs, "Получает данные ставок", "SQL")
+
+Rel(backOfficeManager, webInterfaceAbs, "Подтверждает условия депозита", "HTTPS")
+Rel(webInterfaceAbs, rateService, "Отправляет запрос на согласование", "HTTPS")
+Rel(rateService, dbAbs, "Сохраняет подтверждённые условия", "SQL")
+Rel(rateTransferService, partnerCallCenter, "Передает ставки партнеру", "SFTP")
+Rel(rateTransferService, dbAbs, "Получает данные ставок", "SQL")
+
+Rel(depositServiceInternetBank, smsGateway, "Отправляет SMS-уведомления клиенту", "HTTPS")
+Rel(smsGateway, telecomOperator, "Передаёт SMS для доставки", "HTTPS")
+
+@enduml
